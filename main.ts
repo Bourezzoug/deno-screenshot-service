@@ -4,7 +4,16 @@ import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 const API_KEY = Deno.env.get("API_KEY") || "your-secret-key-change-this";
 
 async function handler(req: Request): Promise<Response> {
-  // Only accept POST requests
+  // --- START OF NEW CODE ---
+  // Handle Deno Deploy's health check
+  const url = new URL(req.url);
+  if (req.method === "GET" && url.pathname === "/") {
+    return new Response("Service is healthy", { status: 200 });
+  }
+  // --- END OF NEW CODE ---
+
+
+  // Only accept POST requests for screenshotting
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -23,13 +32,12 @@ async function handler(req: Request): Promise<Response> {
     }
 
     const browser = await puppeteer.launch({
-        args: ["--no-sandbox"], // Required for the Deno Deploy environment
+        args: ["--no-sandbox"],
     });
     
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
     
-    // Set the HTML content and wait for it to be fully loaded
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const screenshotBuffer = await page.screenshot({ type: "png" });
@@ -45,4 +53,5 @@ async function handler(req: Request): Promise<Response> {
   }
 }
 
+// The port is automatically handled by Deno Deploy, so we don't need to specify it.
 serve(handler);
